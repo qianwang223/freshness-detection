@@ -20,7 +20,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Step 1: Define the Custom Dataset
 class FruitFreshnessDataset(Dataset):
-    def __init__(self, root_dirs, transform=None, indices=None, fruit_to_idx=None):
+    def __init__(self, root_dirs, transform=None, indices=None, fruit_to_idx=None, test=False):
         self.transform = transform
         self.image_paths = []
         self.fruit_labels = []
@@ -35,33 +35,33 @@ class FruitFreshnessDataset(Dataset):
             root_dirs = [root_dirs]
 
         # Collect all images and labels
-        for root_dir in root_dirs:
-            classes = os.listdir(root_dir)
-            for class_name in classes:
-                class_dir = os.path.join(root_dir, class_name)
-                if not os.path.isdir(class_dir):
-                    continue
-                # Determine freshness and fruit type
-                if class_name.startswith('fresh'):
-                    fresh_label = 0  # Label '0' for fresh
-                    fruit_name = class_name[5:]  # Remove 'fresh' prefix
-                elif class_name.startswith('rotten'):
-                    fresh_label = 1  # Label '1' for rotten
-                    fruit_name = class_name[6:]  # Remove 'rotten' prefix
-                else:
-                    continue
+        root_dir = root_dirs[1] if test else root_dirs[0]
+        classes = os.listdir(root_dir)
+        for class_name in classes:
+            class_dir = os.path.join(root_dir, class_name)
+            if not os.path.isdir(class_dir):
+                continue
+            # Determine freshness and fruit type
+            if class_name.startswith('fresh'):
+                fresh_label = 0  # Label '0' for fresh
+                fruit_name = class_name[5:]  # Remove 'fresh' prefix
+            elif class_name.startswith('rotten'):
+                fresh_label = 1  # Label '1' for rotten
+                fruit_name = class_name[6:]  # Remove 'rotten' prefix
+            else:
+                continue
 
-                # Correct any misspellings in fruit_name
-                fruit_name = fruit_name_corrections.get(fruit_name, fruit_name)
+            # Correct any misspellings in fruit_name
+            fruit_name = fruit_name_corrections.get(fruit_name, fruit_name)
 
-                fruit_set.add(fruit_name)
-                # Collect image paths
-                for img_name in os.listdir(class_dir):
-                    img_path = os.path.join(class_dir, img_name)
-                    if os.path.isfile(img_path):
-                        self.image_paths.append(img_path)
-                        self.fruit_labels.append(fruit_name)
-                        self.fresh_labels.append(fresh_label)
+            fruit_set.add(fruit_name)
+            # Collect image paths
+            for img_name in os.listdir(class_dir):
+                img_path = os.path.join(class_dir, img_name)
+                if os.path.isfile(img_path):
+                    self.image_paths.append(img_path)
+                    self.fruit_labels.append(fruit_name)
+                    self.fresh_labels.append(fresh_label)
 
         # Create fruit to index mapping if not provided
         if self.fruit_to_idx is None:
@@ -168,12 +168,18 @@ val_dataset = FruitFreshnessDataset(
     indices=val_indices,
     fruit_to_idx=fruit_to_idx
 )
+test_dataset = FruitFreshnessDataset(
+    root_dirs=[TRAIN_PATH, TEST_PATH],
+    transform=val_transform,
+    test=True
+)
 
 # Create DataLoaders
 BATCH_SIZE = 64
 
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
+test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
 num_fruit_classes = len(fruit_to_idx)
 print("Number of fruit classes:", num_fruit_classes)

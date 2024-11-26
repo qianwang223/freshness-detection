@@ -3,7 +3,7 @@ import torch.nn as nn
 import torchvision.models as models
 from torchvision.models import AlexNet_Weights
 
-from FoodFresh_dataProcess import num_fruit_classes, train_loader, val_loader
+from FoodFresh_dataProcess import num_fruit_classes, train_loader, val_loader, test_loader
 
 
 # Load pretrained AlexNet
