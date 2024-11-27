@@ -12,14 +12,10 @@ class custom_AlexNet(nn.Module):
         super(custom_AlexNet, self).__init__()
         #self.base_model = models.alexnet(weights=AlexNet_Weights.IMAGENET1K_V1)
         self.base_model = models.alexnet()
-        self.base_model.classifier[6] = nn.Identity()  # Remove the original final layer
-
-        # Task-specific output layers
-        self.fc = nn.Linear(4096, 1)
+        self.base_model.classifier[6] = nn.Linear(4096, 1)
 
     def forward(self, x):
-        x = self.base_model(x)
-        output = self.fc(x)
+        output = self.base_model(x)
         return output
 
 
