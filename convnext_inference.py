@@ -13,28 +13,30 @@ from FoodFresh_dataProcess import num_fruit_classes, test_loader
 l_fresh = ["fresh", "rotten"]
 l_type = ["apple", "banana", "bittergroud", "capsicum", "cucumber", "okra", "oranges", "potato", "tomato"]
 
-# Load the pretrained AlexNet models
+# Load the pretrained ConvNeXt model
+class custom_ConvNeXt(nn.Module):
+    def __init__(self, num_fruit_classes):
+        super(custom_ConvNeXt, self).__init__()
+        self.backbone = models.convnext_tiny(weights='DEFAULT')
+        in_features = self.backbone.classifier[2].in_features
+        self.backbone.classifier = nn.Identity()
+        self.classify_fresh = nn.Linear(in_features, 1)
+        self.classify_type = nn.Linear(in_features, num_fruit_classes)
+
+    def forward(self, x):
+        x = self.backbone(x)
+        x = torch.flatten(x, start_dim=1)
+        output_fresh = self.classify_fresh(x)
+        output_type = self.classify_type(x)
+        return output_fresh, output_type
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Freshness classification model
-model_fresh = models.alexnet()
-model_fresh.classifier[6] = nn.Linear(4096, 1)  # Single output for Freshness classification
-state_dict = torch.load("alexnet_fresh.pth", map_location=device, weights_only=True)
-new_state_dict = {name.replace("base_model.", ""): content for name, content in state_dict.items()}
-model_fresh.load_state_dict(new_state_dict)
-model_fresh.to(device)
-model_fresh.eval()
-print("Freshness classification model loaded")
-
-# Type classification model
-model_type = models.alexnet()
-model_type.classifier[6] = nn.Linear(4096, num_fruit_classes)  # Type classification
-state_dict = torch.load("alexnet_type.pth", map_location=device, weights_only=True)
-new_state_dict = {name.replace("base_model.", ""): content for name, content in state_dict.items()}
-model_type.load_state_dict(new_state_dict)
-model_type.to(device)
-model_type.eval()
-print("Type classification model loaded")
+model = custom_ConvNeXt(num_fruit_classes)
+state_dict = torch.load("convnext.pth", map_location=device, weights_only=True)
+model.load_state_dict(state_dict)
+model.to(device)
+model.eval()
+print("Model loaded")
 
 # Inference code
 total_samples = 0
@@ -56,12 +58,10 @@ with torch.no_grad():
         batch_size = images.size(0)
 
         # Freshness classification inference
-        output_fresh = model_fresh(images).squeeze(1)
+        output_fresh, output_type = model(images)
+        output_fresh = output_fresh.squeeze(1)
         predicted_fresh = (torch.sigmoid(output_fresh) > 0.5).long()
         correct_fresh += (predicted_fresh == label_fresh).sum().item()
-
-        # Type classification inference
-        output_type = model_type(images)
         _, predicted_type = torch.max(output_type, 1)
         correct_type += (predicted_type == label_type).sum().item()
 
@@ -90,7 +90,7 @@ with torch.no_grad():
                 draw.text((10, 10), text, fill="red")
 
                 # Save the image
-                img.save(f"alexnet_testing/sample_{total_samples + j}.png")
+                img.save(f"convnext_testing/sample_{total_samples + j}.png")
         
         total_samples += batch_size
 
