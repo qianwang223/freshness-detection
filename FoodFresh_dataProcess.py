@@ -1,4 +1,3 @@
-# Import necessary libraries
 import os
 import random
 from collections import defaultdict
@@ -14,13 +13,14 @@ from tqdm.notebook import tqdm
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 
 # Device configuration
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Step 1: Define the Custom Dataset
 class FruitFreshnessDataset(Dataset):
-    def __init__(self, root_dirs, transform=None, indices=None, fruit_to_idx=None, test=False):
+    def __init__(self, root_dirs, transform=None, indices=None, fruit_to_idx=None):
         self.transform = transform
         self.image_paths = []
         self.fruit_labels = []
@@ -35,33 +35,33 @@ class FruitFreshnessDataset(Dataset):
             root_dirs = [root_dirs]
 
         # Collect all images and labels
-        root_dir = root_dirs[1] if test else root_dirs[0]
-        classes = os.listdir(root_dir)
-        for class_name in classes:
-            class_dir = os.path.join(root_dir, class_name)
-            if not os.path.isdir(class_dir):
-                continue
-            # Determine freshness and fruit type
-            if class_name.startswith('fresh'):
-                fresh_label = 0  # Label '0' for fresh
-                fruit_name = class_name[5:]  # Remove 'fresh' prefix
-            elif class_name.startswith('rotten'):
-                fresh_label = 1  # Label '1' for rotten
-                fruit_name = class_name[6:]  # Remove 'rotten' prefix
-            else:
-                continue
+        for root_dir in root_dirs:
+            classes = os.listdir(root_dir)
+            for class_name in classes:
+                class_dir = os.path.join(root_dir, class_name)
+                if not os.path.isdir(class_dir):
+                    continue
+                # Determine freshness and fruit type
+                if class_name.startswith('fresh'):
+                    fresh_label = 0  # Label '0' for fresh
+                    fruit_name = class_name[5:]  # Remove 'fresh' prefix
+                elif class_name.startswith('rotten'):
+                    fresh_label = 1  # Label '1' for rotten
+                    fruit_name = class_name[6:]  # Remove 'rotten' prefix
+                else:
+                    continue
 
-            # Correct any misspellings in fruit_name
-            fruit_name = fruit_name_corrections.get(fruit_name, fruit_name)
+                # Correct any misspellings in fruit_name
+                fruit_name = fruit_name_corrections.get(fruit_name, fruit_name)
 
-            fruit_set.add(fruit_name)
-            # Collect image paths
-            for img_name in os.listdir(class_dir):
-                img_path = os.path.join(class_dir, img_name)
-                if os.path.isfile(img_path):
-                    self.image_paths.append(img_path)
-                    self.fruit_labels.append(fruit_name)
-                    self.fresh_labels.append(fresh_label)
+                fruit_set.add(fruit_name)
+                # Collect image paths
+                for img_name in os.listdir(class_dir):
+                    img_path = os.path.join(class_dir, img_name)
+                    if os.path.isfile(img_path):
+                        self.image_paths.append(img_path)
+                        self.fruit_labels.append(fruit_name)
+                        self.fresh_labels.append(fresh_label)
 
         # Create fruit to index mapping if not provided
         if self.fruit_to_idx is None:
@@ -96,8 +96,13 @@ class FruitFreshnessDataset(Dataset):
 # Step 2: Define Data Transforms
 # Pretrained model normalization parameters
 
+weights = EfficientNet_B0_Weights.DEFAULT
+preprocess = weights.transforms()
+
+
 train_transform = transforms.Compose([
     transforms.Resize((224, 224)),
+    # Data augmentation techniques
     transforms.RandomHorizontalFlip(),
     transforms.RandomVerticalFlip(),
     transforms.RandomRotation(15),
@@ -107,13 +112,13 @@ train_transform = transforms.Compose([
     transforms.GaussianBlur(3, sigma=(0.1, 2.0)),
     transforms.RandomAdjustSharpness(3, p=0.5),
     transforms.ToTensor(),
-    transforms.Normalize(0, 1)
+    transforms.Normalize(mean=weights.transforms().mean, std=weights.transforms().std)
 ])
 
 val_transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(0, 1)
+    transforms.Normalize(mean=weights.transforms().mean, std=weights.transforms().std)
 ])
 
 # Step 3: Create Datasets and DataLoaders
@@ -150,9 +155,18 @@ random.shuffle(balanced_indices)
 # Get the labels for stratification
 balanced_labels = [full_dataset.fruit_labels[i] for i in balanced_indices]
 
-# Split balanced indices into training and validation sets
-train_indices, val_indices = train_test_split(
-    balanced_indices, test_size=0.15, random_state=10, stratify=balanced_labels
+# # Split balanced indices into training and validation sets
+# train_indices, val_indices = train_test_split(
+#     balanced_indices, test_size=0.15, random_state=10, stratify=balanced_labels
+# )
+
+train_indices, temp_indices, train_labels, temp_labels = train_test_split(
+    balanced_indices, balanced_labels, test_size=0.30, random_state=10, stratify=balanced_labels
+)
+
+# Then, split the temp into validation and test
+val_indices, test_indices, val_labels, test_labels = train_test_split(
+    temp_indices, temp_labels, test_size=0.50, random_state=10, stratify=temp_labels
 )
 
 # Create separate datasets for training and validation with transforms
@@ -168,10 +182,12 @@ val_dataset = FruitFreshnessDataset(
     indices=val_indices,
     fruit_to_idx=fruit_to_idx
 )
+
 test_dataset = FruitFreshnessDataset(
     root_dirs=[TRAIN_PATH, TEST_PATH],
     transform=val_transform,
-    test=True
+    indices=test_indices,
+    fruit_to_idx=fruit_to_idx
 )
 
 # Create DataLoaders
@@ -183,7 +199,6 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
 num_fruit_classes = len(fruit_to_idx)
 print("Number of fruit classes:", num_fruit_classes)
-
 
 
 
