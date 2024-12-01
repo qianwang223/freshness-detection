@@ -5,7 +5,7 @@ import torchvision.transforms as transforms
 import os
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, classification_report
 
 from FoodFresh_dataProcess import num_fruit_classes, test_loader
 
@@ -71,9 +71,9 @@ with torch.no_grad():
         truth_type.extend(label_type.cpu().tolist())
         pred_type.extend(predicted_type.cpu().tolist())
 
-        # Save images for every 200 samples
+        # Save images for every 100 samples
         for j in range(batch_size):
-            if (total_samples + j) % 200 == 0:
+            if (total_samples + j) % 100 == 0:
                 # Convert image tensor to PIL image
                 img = transform(images[j].cpu())
 
@@ -99,5 +99,11 @@ accuracy_fresh = correct_fresh / total_samples * 100
 accuracy_type = correct_type / total_samples * 100
 f1_fresh = f1_score(truth_fresh, pred_fresh, average="binary")
 f1_type = f1_score(truth_type, pred_type, average="weighted")
+report_fresh = classification_report(truth_fresh, pred_fresh, target_names=l_fresh, zero_division=0)
+report_type = classification_report(truth_type, pred_type, target_names=l_type, zero_division=0)
 print(f"Freshness Classification: Accuracy={accuracy_fresh:.2f}%, F1={f1_fresh:.4f}")
+print("Classification Report for Freshness Classification:")
+print(report_fresh)
 print(f"Type Classification: Accuracy={accuracy_type:.2f}%, F1={f1_type:.4f}")
+print("Classification Report for Type Classification:")
+print(report_type)

@@ -10,8 +10,8 @@ from FoodFresh_dataProcess import num_fruit_classes, train_loader, val_loader, t
 class custom_AlexNet(nn.Module):
     def __init__(self, num_fruit_classes):
         super(custom_AlexNet, self).__init__()
-        #self.base_model = models.alexnet(weights=AlexNet_Weights.IMAGENET1K_V1)
-        self.base_model = models.alexnet()
+        self.base_model = models.alexnet(weights=AlexNet_Weights.IMAGENET1K_V1)
+        #self.base_model = models.alexnet()
         self.base_model.classifier[6] = nn.Linear(4096, num_fruit_classes)
 
     def forward(self, x):
@@ -24,7 +24,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = custom_AlexNet(num_fruit_classes).to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-num_epochs = 10
+num_epochs = 20
 
 
 # Training loop
