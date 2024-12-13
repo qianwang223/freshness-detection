@@ -23,7 +23,7 @@ class custom_AlexNet(nn.Module):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = custom_AlexNet(num_fruit_classes).to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 num_epochs = 20
 
 
