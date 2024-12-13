@@ -335,10 +335,93 @@ dataloaders = {
     'val': val_loader
 }
 
-num_epochs = 1  # Adjust the number of epochs as needed
+num_epochs = 5  # Adjust the number of epochs as needed
 model = train_model(model, dataloaders, criterion_fruit, criterion_freshness, optimizer, scheduler, num_epochs)
 
-# Updated evaluate_model function to display fruit names and freshness labels (unchanged)
+# # Updated evaluate_model function to display fruit names and freshness labels (unchanged)
+# def evaluate_model(model, dataloader):
+#     model.eval()
+#     fruit_preds = []
+#     fruit_labels = []
+#     freshness_preds = []
+#     freshness_labels = []
+#
+#     idx_to_fruit = {idx: fruit for fruit, idx in fruit_to_idx.items()}
+#     freshness_mapping = {0: "fresh", 1: "rotten"}
+#
+#     images_to_show = []
+#     pred_fruit_labels = []
+#     true_fruit_labels = []
+#     pred_freshness_labels = []
+#     true_freshness_labels = []
+#
+#     with torch.no_grad():
+#         for inputs, labels_fruit, labels_freshness in dataloader:
+#             inputs = inputs.to(device)
+#             labels_fruit = labels_fruit.to(device)
+#             labels_freshness = labels_freshness.to(device).float()
+#
+#             outputs_fruit, outputs_freshness = model(inputs)
+#             _, preds_fruit = torch.max(outputs_fruit, 1)
+#             preds_freshness = torch.sigmoid(outputs_freshness).squeeze() >= 0.5
+#
+#             fruit_preds.extend(preds_fruit.cpu().numpy())
+#             fruit_labels.extend(labels_fruit.cpu().numpy())
+#             freshness_preds.extend(preds_freshness.cpu().numpy())
+#             freshness_labels.extend(labels_freshness.cpu().numpy())
+#
+#             # For visualization, collect images from the first batch
+#             if len(images_to_show) == 0:
+#                 # Move inputs to CPU and unnormalize
+#                 inputs_cpu = inputs.cpu()
+#                 mean = torch.tensor(weights.transforms().mean).view(3, 1, 1)
+#                 std = torch.tensor(weights.transforms().std).view(3, 1, 1)
+#                 inputs_cpu = inputs_cpu * std + mean
+#                 images_to_show.extend(inputs_cpu)
+#                 pred_fruit_labels.extend(preds_fruit.cpu().numpy())
+#                 true_fruit_labels.extend(labels_fruit.cpu().numpy())
+#                 pred_freshness_labels.extend(preds_freshness.cpu().numpy())
+#                 true_freshness_labels.extend(labels_freshness.cpu().numpy())
+#
+#             # Remove the break statement to process the entire dataset
+#             # break  # Comment out or remove this line to evaluate all data
+#
+#     # Map labels and predictions to names
+#     fruit_labels_names = [idx_to_fruit[label] for label in fruit_labels]
+#     fruit_preds_names = [idx_to_fruit[pred] for pred in fruit_preds]
+#
+#     freshness_labels_names = [freshness_mapping[int(label)] for label in freshness_labels]
+#     freshness_preds_names = [freshness_mapping[int(pred)] for pred in freshness_preds]
+#
+#     # Compute metrics
+#     fruit_report = classification_report(fruit_labels_names, fruit_preds_names, zero_division=0)
+#     freshness_report = classification_report(freshness_labels_names, freshness_preds_names, zero_division=0)
+#
+#     print('Test Fruit Classification Report:')
+#     print(fruit_report)
+#     print('Test Freshness Classification Report:')
+#     print(freshness_report)
+#
+#     # Display images with predicted labels
+#     num_images = min(5, len(images_to_show))  # Display up to 5 images
+#     fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
+#     for i in range(num_images):
+#         image = images_to_show[i].numpy().transpose((1, 2, 0))
+#         image = np.clip(image, 0, 1)
+#         pred_fruit = idx_to_fruit[pred_fruit_labels[i]]
+#         true_fruit = idx_to_fruit[true_fruit_labels[i]]
+#         pred_freshness = freshness_mapping[int(pred_freshness_labels[i])]
+#         true_freshness = freshness_mapping[int(true_freshness_labels[i])]
+#
+#         axes[i].imshow(image)
+#         axes[i].axis('off')
+#         axes[i].set_title(f'True: {true_freshness} {true_fruit}\nPred: {pred_freshness} {pred_fruit}')
+#     plt.show()
+#
+# # Evaluate the model on the test dataset
+# print("Evaluating on Test Dataset:")
+# evaluate_model(model, test_loader)
+
 def evaluate_model(model, dataloader):
     model.eval()
     fruit_preds = []
@@ -370,21 +453,16 @@ def evaluate_model(model, dataloader):
             freshness_preds.extend(preds_freshness.cpu().numpy())
             freshness_labels.extend(labels_freshness.cpu().numpy())
 
-            # For visualization, collect images from the first batch
-            if len(images_to_show) == 0:
-                # Move inputs to CPU and unnormalize
-                inputs_cpu = inputs.cpu()
-                mean = torch.tensor(weights.transforms().mean).view(3, 1, 1)
-                std = torch.tensor(weights.transforms().std).view(3, 1, 1)
-                inputs_cpu = inputs_cpu * std + mean
-                images_to_show.extend(inputs_cpu)
-                pred_fruit_labels.extend(preds_fruit.cpu().numpy())
-                true_fruit_labels.extend(labels_fruit.cpu().numpy())
-                pred_freshness_labels.extend(preds_freshness.cpu().numpy())
-                true_freshness_labels.extend(labels_freshness.cpu().numpy())
-
-            # Remove the break statement to process the entire dataset
-            # break  # Comment out or remove this line to evaluate all data
+            # Collect all images and predictions for visualization
+            inputs_cpu = inputs.cpu()
+            mean = torch.tensor(weights.transforms().mean).view(3, 1, 1)
+            std = torch.tensor(weights.transforms().std).view(3, 1, 1)
+            inputs_cpu = inputs_cpu * std + mean
+            images_to_show.extend(inputs_cpu)
+            pred_fruit_labels.extend(preds_fruit.cpu().numpy())
+            true_fruit_labels.extend(labels_fruit.cpu().numpy())
+            pred_freshness_labels.extend(preds_freshness.cpu().numpy())
+            true_freshness_labels.extend(labels_freshness.cpu().numpy())
 
     # Map labels and predictions to names
     fruit_labels_names = [idx_to_fruit[label] for label in fruit_labels]
@@ -402,21 +480,52 @@ def evaluate_model(model, dataloader):
     print('Test Freshness Classification Report:')
     print(freshness_report)
 
-    # Display images with predicted labels
-    num_images = min(5, len(images_to_show))  # Display up to 5 images
-    fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
-    for i in range(num_images):
-        image = images_to_show[i].numpy().transpose((1, 2, 0))
-        image = np.clip(image, 0, 1)
-        pred_fruit = idx_to_fruit[pred_fruit_labels[i]]
-        true_fruit = idx_to_fruit[true_fruit_labels[i]]
-        pred_freshness = freshness_mapping[int(pred_freshness_labels[i])]
-        true_freshness = freshness_mapping[int(true_freshness_labels[i])]
+    # Prepare images for display per class
+    num_images_per_class = 4  # Number of images to show per class
+    unique_classes = set(zip(true_freshness_labels, true_fruit_labels))
 
-        axes[i].imshow(image)
-        axes[i].axis('off')
-        axes[i].set_title(f'True: {true_freshness} {true_fruit}\nPred: {pred_freshness} {pred_fruit}')
+    # Create figure and axes for display
+    fig, axes = plt.subplots(len(unique_classes), num_images_per_class, figsize=(5 * num_images_per_class, 5 * len(unique_classes)))
+
+    # Ensure axes is a 2D array for consistent indexing
+    if len(unique_classes) == 1:
+        axes = [axes]
+    if num_images_per_class == 1:
+        axes = np.expand_dims(axes, axis=1)
+
+    for row_idx, (freshness_label, fruit_label) in enumerate(unique_classes):
+        # Find indices for images of the current class
+        class_indices = [i for i, (fl, fr) in enumerate(zip(true_freshness_labels, true_fruit_labels))
+                         if (fl == freshness_label and fr == fruit_label)]
+
+        # Limit images displayed to `num_images_per_class`
+        num_images = min(num_images_per_class, len(class_indices))
+
+        for col_idx in range(num_images):
+            idx = class_indices[col_idx]
+            image = images_to_show[idx].numpy().transpose((1, 2, 0))
+            image = np.clip(image, 0, 1)
+            pred_fruit = idx_to_fruit[pred_fruit_labels[idx]]
+            true_fruit = idx_to_fruit[true_fruit_labels[idx]]
+            pred_freshness = freshness_mapping[int(pred_freshness_labels[idx])]
+            true_freshness = freshness_mapping[int(true_freshness_labels[idx])]
+
+            axes[row_idx][col_idx].imshow(image)
+            axes[row_idx][col_idx].axis('off')
+            axes[row_idx][col_idx].set_title(
+                f'True: {true_freshness} {true_fruit}\nPred: {pred_freshness} {pred_fruit}')
+
+        # Hide unused subplots in the current row
+        for col_idx in range(num_images, num_images_per_class):
+            axes[row_idx][col_idx].axis('off')
+
+    plt.tight_layout()
     plt.show()
+# test code, may need to change
+model = FruitFreshnessModel(num_fruit_classes).to(device)
+
+#load best weights
+model.load_state_dict(torch.load('best_model_weights.pth'))
 
 # Evaluate the model on the test dataset
 print("Evaluating on Test Dataset:")
