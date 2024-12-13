@@ -354,7 +354,7 @@ dataloaders = {
     'val': val_loader
 }
 
-num_epochs = 1 # You can adjust this as needed
+num_epochs = 5 # You can adjust this as needed
 model = train_model(model, dataloaders, criterion_fruit, criterion_freshness, optimizer, scheduler, num_epochs)
 
 def evaluate_model(model, dataloader):
