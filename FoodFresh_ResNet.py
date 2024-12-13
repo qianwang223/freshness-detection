@@ -358,7 +358,7 @@ dataloaders = {
     'val': val_loader
 }
 
-num_epochs = 1 # Adjust the number of epochs as needed
+num_epochs = 5 # Adjust the number of epochs as needed
 model = train_model(model, dataloaders, criterion_fruit, criterion_freshness, optimizer, scheduler, num_epochs)
 
 # Updated evaluate_model function to display fruit names and freshness labels
@@ -420,9 +420,9 @@ def evaluate_model(model, dataloader):
     fruit_report = classification_report(fruit_labels_names, fruit_preds_names, zero_division=0)
     freshness_report = classification_report(freshness_labels_names, freshness_preds_names, zero_division=0)
 
-    print('Validation Fruit Classification Report:')
+    print('Test Fruit Classification Report:')
     print(fruit_report)
-    print('Validation Freshness Classification Report:')
+    print('Test Freshness Classification Report:')
     print(freshness_report)
 
     # # Display images with predicted labels
@@ -501,4 +501,5 @@ model.load_state_dict(torch.load('best_model_weights.pth'))
 
 # Evaluate the model
 evaluate_model(model, test_loader)
+
 
